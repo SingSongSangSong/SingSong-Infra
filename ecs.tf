@@ -3,6 +3,7 @@ resource "aws_ecs_cluster" "singsong_ecs_cluster" {
   name = var.ecs_cluster_name
 }
 
+
 // IAM Role 생성
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "ecsTaskExecutionRole2"
@@ -21,9 +22,35 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+// Attach the necessary policies to the IAM role
+resource "aws_iam_role_policy" "ecs_task_execution_policy" {
+  name   = "ecsTaskExecutionPolicy"
+  role   = aws_iam_role.ecs_task_execution_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:ListClusters",
+          "ecs:ListContainerInstances",
+          "ecs:DescribeContainerInstances",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:CreateLogGroup",
+          "logs:DescribeLogStreams",
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "s3:GetObject",
+          "s3:ListBucket",
+          "s3:PutObject"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
 }
 
 // ECS Task Definition 생성
@@ -52,7 +79,7 @@ resource "aws_ecs_task_definition" "singsong_ecs_task_definition" {
     },
     {
       name      = "datadog-agent"
-      image     = "datadog/agent:latest"
+      image     = "public.ecr.aws/datadog/agent:latest"
       essential = true
       environment = [
         {
@@ -77,10 +104,10 @@ resource "aws_ecs_task_definition" "singsong_ecs_task_definition" {
         }
       ],
       logConfiguration = {
-        logDriver = "awslogs"
+        logDriver = "awslogs",
         options = {
-          "awslogs-group"         = "/ecs/singsong"
-          "awslogs-region"        = "ap-northeast-2"
+          "awslogs-group"         = "/ecs/singsong",
+          "awslogs-region"        = var.region,
           "awslogs-stream-prefix" = "datadog-agent"
         }
       },
@@ -100,7 +127,7 @@ resource "aws_ecs_service" "singsong_ecs_service" {
   name                   = "singsong-ecs-service"
   cluster                = aws_ecs_cluster.singsong_ecs_cluster.id
   task_definition        = aws_ecs_task_definition.singsong_ecs_task_definition.arn
-  desired_count          = 2
+  desired_count          = 1
   launch_type            = "FARGATE"
   scheduling_strategy    = "REPLICA"
   health_check_grace_period_seconds = 120

@@ -43,6 +43,11 @@ variable "datadog_url" {
   type        = string
 }
 
+variable "datadog_key_id" {
+  description = "Datadog key id"
+  type        = string
+}
+
 variable "certificate_domain" {
   description = "Domain for the ACM certificate"
   type        = string
