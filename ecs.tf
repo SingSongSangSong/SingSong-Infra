@@ -127,7 +127,7 @@ resource "aws_ecs_service" "singsong_ecs_service" {
   name                   = "singsong-ecs-service"
   cluster                = aws_ecs_cluster.singsong_ecs_cluster.id
   task_definition        = aws_ecs_task_definition.singsong_ecs_task_definition.arn
-  desired_count          = 1
+  desired_count          = 2
   launch_type            = "FARGATE"
   scheduling_strategy    = "REPLICA"
   health_check_grace_period_seconds = 120
