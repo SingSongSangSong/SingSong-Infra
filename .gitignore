@@ -2,3 +2,4 @@ bash.sh
 .terraform
 .terraform.lock.hcl
 terraform.tfvars
+.idea
