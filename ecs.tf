@@ -76,10 +76,42 @@ resource "aws_ecs_task_definition" "singsong_ecs_task_definition" {
           hostPort      = 80
         }
       ]
+      logConfiguration = {
+        logDriver = "awsfirelens"
+        options = {
+          Name           = "datadog"
+          dd_message_key = "log"
+          apikey         = var.datadog_api_key
+          dd_service     = "singsong"
+          dd_source      = "httpd"
+          dd_tags        = "env:prod"
+          provider       = "ecs"
+          Host           = "http-intake.logs.datadoghq.com"
+          TLS            = "on"
+        }
+      }
+    },
+    {
+      name      = "log-router"
+      image     = "amazon/aws-for-fluent-bit:latest"
+      essential = true
+      firelensConfiguration = {
+        type = "fluentbit"
+        options = {
+          "enable-ecs-log-metadata" = "true"
+        }
+      }
     },
     {
       name      = "datadog-agent"
       image     = "public.ecr.aws/datadog/agent:latest"
+      portMappings = [
+        {
+          hostPort      = 8126
+          containerPort = 8126
+          protocol      = "tcp"
+        }
+      ]
       essential = true
       environment = [
         {
@@ -101,13 +133,33 @@ resource "aws_ecs_task_definition" "singsong_ecs_task_definition" {
         {
           name  = "DD_RUNTIME_SECURITY_CONFIG_EBPFLESS_ENABLED"
           value = "true"
+        },
+        {
+          name  = "DD_APM_ENABLED"
+          value = "true"
+        },
+        {
+          name  = "DD_APM_NON_LOCAL_TRAFFIC"
+          value = "true"
+        },
+        {
+          name  = "DD_ECS_LOG_ENABLED"
+          value = "true"
+        },
+        {
+          name  = "DD_LOGS_ENABLED"
+          value = "true"
+        },
+        {
+          name  = "DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL"
+          value = "true"
         }
       ],
       logConfiguration = {
-        logDriver = "awslogs",
+        logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/singsong",
-          "awslogs-region"        = var.region,
+          "awslogs-group"         = "/ecs/singsong"
+          "awslogs-region"        = var.region
           "awslogs-stream-prefix" = "datadog-agent"
         }
       },
