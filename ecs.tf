@@ -89,16 +89,26 @@ resource "aws_ecs_task_definition" "singsong_ecs_task_definition" {
           Host           = "http-intake.logs.datadoghq.com"
           TLS            = "on"
         }
+      },
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/singsong"
+          "awslogs-region"        = var.region
+          "awslogs-stream-prefix" = "singsong-container"
+        }
       }
     },
     {
       name      = "log-router"
-      image     = "amazon/aws-for-fluent-bit:latest"
+      image     = "amazon/aws-for-fluent-bit:stable"
       essential = true
       firelensConfiguration = {
         type = "fluentbit"
         options = {
           "enable-ecs-log-metadata" = "true"
+          "config-file-type": "file",
+          "config-file-value": "/fluent-bit/configs/parse-json.conf"
         }
       }
     },
