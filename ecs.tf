@@ -86,7 +86,7 @@ resource "aws_ecs_task_definition" "singsong_ecs_task_definition" {
           dd_source      = "httpd"
           dd_tags        = "env:prod"
           provider       = "ecs"
-          Host           = "http-intake.logs.datadoghq.com"
+          Host           = "http-intake.logs.us5.datadoghq.com"
           TLS            = "on"
         }
       },
