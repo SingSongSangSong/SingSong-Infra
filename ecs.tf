@@ -90,14 +90,6 @@ resource "aws_ecs_task_definition" "singsong_ecs_task_definition" {
           TLS            = "on"
         }
       },
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = "/ecs/singsong"
-          "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "singsong-container"
-        }
-      }
     },
     {
       name      = "log-router"
@@ -109,6 +101,14 @@ resource "aws_ecs_task_definition" "singsong_ecs_task_definition" {
           "enable-ecs-log-metadata" = "true"
           "config-file-type": "file",
           "config-file-value": "/fluent-bit/configs/parse-json.conf"
+        }
+      }
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/singsong"
+          "awslogs-region"        = var.region
+          "awslogs-stream-prefix" = "log-router"
         }
       }
     },
