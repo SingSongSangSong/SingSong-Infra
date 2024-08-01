@@ -62,3 +62,13 @@ variable "existing_route53_zone_name" {
   description = "Existing Route 53 hosted zone name"
   type        = string
 }
+
+variable "key_name" {
+    description = "Key pair name"
+    type        = string
+}
+
+variable "public_key" {
+    description = "Public key for the key pair"
+    type        = string
+}
