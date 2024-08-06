@@ -72,3 +72,8 @@ variable "public_key" {
     description = "Public key for the key pair"
     type        = string
 }
+
+variable "s3_bucket_name" {
+    description = "S3 bucket name"
+    type        = string
+}
