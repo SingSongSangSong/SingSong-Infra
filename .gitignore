@@ -3,3 +3,5 @@ bash.sh
 .terraform.lock.hcl
 terraform.tfvars
 .idea
+myvenv
+src/python/lib/python3.9/site-packages/*
