@@ -20,3 +20,10 @@ resource "aws_elasticache_cluster" "singsong_redis" {
     log_type         = "slow-log"
   }
 }
+
+resource "aws_ssm_parameter" "redis_endpoint" {
+  name  = "/singsong/ElastiCacheEndpoint"
+  type  = "String"
+  value = split(":", aws_elasticache_cluster.singsong_redis.cache_nodes.0.address)[0]
+}
+

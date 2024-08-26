@@ -11,7 +11,7 @@ resource "aws_db_instance" "singsong_db" {
   multi_az             = true
   instance_class       = "db.t4g.micro"
   identifier           = "singsong-identifier"
-  db_name              = "singsongdb"
+  db_name              = var.db_name
   username             = var.db_username
   password             = var.db_password
   db_subnet_group_name = aws_db_subnet_group.singsong_db_subnet_group.name
@@ -19,3 +19,40 @@ resource "aws_db_instance" "singsong_db" {
   skip_final_snapshot  = true
   final_snapshot_identifier = "singsong-db-final-snapshot"
 }
+
+resource "aws_ssm_parameter" "db_password" {
+  name  = "/singsong/RDSPassword"
+  type  = "SecureString"
+  value = var.db_password
+}
+
+resource "aws_ssm_parameter" "db_username" {
+  name  = "/singsong/RDSUsername"
+  type  = "String"
+  value = var.db_username
+}
+
+resource "aws_ssm_parameter" "db_endpoint" {
+  name  = "/singsong/RDSEndpoint"
+  type  = "String"
+  value = element(split(":", aws_db_instance.singsong_db.endpoint), 0)
+}
+
+resource "aws_ssm_parameter" "db_name" {
+    name  = "/singsong/RDSName"
+    type  = "String"
+    value = aws_db_instance.singsong_db.db_name
+}
+
+resource "aws_ssm_parameter" "db_identifier" {
+    name  = "/singsong/RDSIdentifier"
+    type  = "String"
+    value = aws_db_instance.singsong_db.identifier
+}
+
+resource "aws_ssm_parameter" "db_port" {
+    name  = "/singsong/RDSPort"
+    type  = "String"
+    value = aws_db_instance.singsong_db.port
+}
+

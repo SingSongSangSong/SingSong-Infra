@@ -33,6 +33,11 @@ variable "db_password" {
   type        = string
 }
 
+variable "db_name" {
+    description = "RDS instance name"
+    type        = string
+}
+
 variable "datadog_api_key" {
   description = "Datadog API key"
   type        = string
