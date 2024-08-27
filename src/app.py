@@ -117,7 +117,7 @@ def lambda_handler(event, context):
         seoul_tz = ZoneInfo('Asia/Seoul')
         now = datetime.now(seoul_tz)
 
-        one_hour_later = now + timedelta(hours=1)
+        one_hour_later = now + timedelta(hours=1) + timedelta(minutes=5) + timedelta(seconds=30)
         formatted_string_for_one_hour_later = one_hour_later.strftime("%Y-%m-%d-%H-Hot_Trend")
 
         try:
