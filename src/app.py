@@ -117,7 +117,7 @@ def lambda_handler(event, context):
         seoul_tz = ZoneInfo('Asia/Seoul')
         now = datetime.now(seoul_tz)
 
-        one_hour_later = now + timedelta(hours=1) + timedelta(minutes=5) + timedelta(seconds=30)
+        one_hour_later = now + timedelta(hours=1)
         formatted_string_for_one_hour_later = one_hour_later.strftime("%Y-%m-%d-%H-Hot_Trend")
 
         try:
@@ -166,11 +166,11 @@ def lambda_handler(event, context):
 
         new_formatted_string_for_male = formatted_string_for_one_hour_later + "_MALE"
         rdb.set(new_formatted_string_for_male, json.dumps(male_results))
-        rdb.expire(new_formatted_string_for_male, 3660)
+        rdb.expire(new_formatted_string_for_male, 3910)
 
         new_formatted_string_for_female = formatted_string_for_one_hour_later + "_FEMALE"
         rdb.set(new_formatted_string_for_female, json.dumps(female_results))
-        rdb.expire(new_formatted_string_for_female, 3660)
+        rdb.expire(new_formatted_string_for_female, 3910)
 
         return {
             'statusCode': 200,
