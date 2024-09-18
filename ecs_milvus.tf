@@ -136,6 +136,20 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
           containerPath = "/etcd"
         }
       ]
+      logConfiguration = {
+        logDriver = "awsfirelens"
+        options = {
+          Name           = "datadog"
+          dd_message_key = "log"
+          apikey         = var.datadog_api_key
+          dd_service     = "milvus-etcd"
+          dd_source      = "etcd"
+          dd_tags        = "env:prod"
+          provider       = "ecs"
+          Host           = "http-intake.logs.us5.datadoghq.com"
+          TLS            = "on"
+        }
+      }
     },
     {
       name      = "milvus-minio"
@@ -168,6 +182,20 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
           containerPath = "/minio_data"
         }
       ]
+      logConfiguration = {
+        logDriver = "awsfirelens"
+        options = {
+          Name           = "datadog"
+          dd_message_key = "log"
+          apikey         = var.datadog_api_key
+          dd_service     = "milvus-minio"
+          dd_source      = "minio"
+          dd_tags        = "env:prod"
+          provider       = "ecs"
+          Host           = "http-intake.logs.us5.datadoghq.com"
+          TLS            = "on"
+        }
+      }
     },
     {
       name      = "milvus-standalone"
@@ -200,6 +228,20 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
           containerPath = "/var/lib/milvus"
         }
       ]
+      logConfiguration = {
+        logDriver = "awsfirelens"
+        options = {
+          Name           = "datadog"
+          dd_message_key = "log"
+          apikey         = var.datadog_api_key
+          dd_service     = "milvus-standalone"
+          dd_source      = "milvus"
+          dd_tags        = "env:prod"
+          provider       = "ecs"
+          Host           = "http-intake.logs.us5.datadoghq.com"
+          TLS            = "on"
+        }
+      }
     },
     {
       name      = "attu"
@@ -221,6 +263,39 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
           hostPort      = 3000
         }
       ]
+      logConfiguration = {
+        logDriver = "awsfirelens"
+        options = {
+          Name           = "datadog"
+          dd_message_key = "log"
+          apikey         = var.datadog_api_key
+          dd_service     = "attu"
+          dd_source      = "attu"
+          dd_tags        = "env:prod"
+          provider       = "ecs"
+          Host           = "http-intake.logs.us5.datadoghq.com"
+          TLS            = "on"
+        }
+      }
+    },
+    {
+      name      = "log-router"
+      image     = "amazon/aws-for-fluent-bit:stable"
+      essential = true
+      firelensConfiguration = {
+        type = "fluentbit"
+        options = {
+          "enable-ecs-log-metadata" = "true"
+        }
+      }
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/milvus-task"
+          "awslogs-region"        = var.region
+          "awslogs-stream-prefix" = "log-router"
+        }
+      }
     }
   ])
 
@@ -246,18 +321,79 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
   }
 }
 
-resource "aws_ecs_service" "singsong_embedding_service" {
-  name                   = "singsong-ecs-embedding-service"
+resource "aws_ecs_service" "singsong_milvus_service" {
+  name                   = "singsong-ecs-milvus-service"
   cluster                = aws_ecs_cluster.singsong_ecs_cluster.id
   task_definition        = aws_ecs_task_definition.milvus_ecs_task_definition.arn
   desired_count          = 1
   launch_type            = "FARGATE"
   scheduling_strategy    = "REPLICA"
-  health_check_grace_period_seconds = 120
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.milvus_target_group.arn
+    container_name   = "milvus-standalone"
+    container_port   = 19530
+  }
 
   network_configuration {
     subnets         = [aws_subnet.singsong_public_subnet1.id, aws_subnet.singsong_public_subnet2.id]
     security_groups = [aws_security_group.singsong_milvus_security_group.id]
     assign_public_ip = true
   }
+}
+
+resource "aws_lb" "milvus_load_balancer" {
+  name               = "milvus-lb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.singsong_milvus_security_group.id]
+  subnets            = [aws_subnet.singsong_public_subnet1.id, aws_subnet.singsong_public_subnet2.id]
+}
+
+// ALB Listener 생성 for Milvus
+// ALB Listener 생성 for Milvus
+resource "aws_lb_listener" "singsong_milvus_listener" {
+  load_balancer_arn = aws_lb.milvus_load_balancer.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.singsong_milvus_tg.arn
+  }
+}
+
+// Route 53 CNAME 레코드 생성 for Milvus 서비스
+resource "aws_route53_record" "singsong_milvus_record" {
+  zone_id = aws_route53_zone.singsong_private_zone.zone_id
+  name    = "milvus.${var.route53_zone_name}"
+  type    = "CNAME"
+  ttl     = 300
+  records = [aws_lb.milvus_load_balancer.dns_name]  // Load Balancer의 DNS 이름
+}
+
+// ALB Target Group 생성 for Milvus
+resource "aws_lb_target_group" "singsong_milvus_tg" {
+  name       = "singsong-milvus-tg"
+  port       = 19530
+  protocol   = "HTTP"
+  vpc_id     = aws_vpc.singsong_vpc.id
+  target_type = "ip"  // Fargate용으로 'ip' 설정
+
+  health_check {
+    path                = "/health"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    matcher             = "200"
+  }
+}
+
+resource "aws_route53_record" "singsong_milvus_record" {
+  zone_id = aws_route53_zone.singsong_private_zone.zone_id  // 기존 Hosted Zone ID 사용
+  name    = "milvus.${var.route53_zone_name}"
+  type    = "CNAME"
+  ttl     = 300
+  records = [aws_lb.milvus_load_balancer.dns_name]  // Load Balancer의 DNS 이름
 }

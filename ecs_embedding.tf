@@ -1,61 +1,6 @@
-// ECS Cluster 생성
-resource "aws_ecs_cluster" "singsong_ecs_cluster" {
-  name = var.ecs_cluster_name
-}
-
-
-// IAM Role 생성
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecsTaskExecutionRole2"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-// Attach the necessary policies to the IAM role
-resource "aws_iam_role_policy" "ecs_task_execution_policy" {
-  name   = "ecsTaskExecutionPolicy"
-  role   = aws_iam_role.ecs_task_execution_role.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ecs:ListClusters",
-          "ecs:ListContainerInstances",
-          "ecs:DescribeContainerInstances",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-          "logs:CreateLogGroup",
-          "logs:DescribeLogStreams",
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "s3:GetObject",
-          "s3:ListBucket",
-          "s3:PutObject"
-        ],
-        Resource = "*"
-      }
-    ]
-  })
-}
-
 // ECS Task Definition 생성
-resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
-  family                   = "singsong-golang-task"
+resource "aws_ecs_task_definition" "singsong_embedding_ecs_task_definition" {
+  family                   = "singsong-embedding-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "1024"
@@ -63,17 +8,13 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   container_definitions    = jsonencode([
     {
-      name      = "singsong-golang-container"
-      image     = "${aws_ecr_repository.singsong_golang_ecr_repository.repository_url}:latest"
+      name      = "singsong-embedding-container"
+      image     = "${aws_ecr_repository.singsong_embedding_ecr_repository.repository_url}:latest"
       essential = true
       portMappings = [
         {
-          containerPort = 8080
-          hostPort      = 8080
-        },
-        {
-          containerPort = 80
-          hostPort      = 80
+          containerPort = 50051
+          hostPort      = 50051
         }
       ]
       logConfiguration = {
@@ -82,7 +23,7 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
           Name           = "datadog"
           dd_message_key = "log"
           apikey         = var.datadog_api_key
-          dd_service     = "singsong-golang"
+          dd_service     = "singsong-embedding"
           dd_source      = "httpd"
           dd_tags        = "env:prod"
           provider       = "ecs"
@@ -106,7 +47,7 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/singsong-golang"
+          "awslogs-group"         = "/ecs/singsong-embedding"
           "awslogs-region"        = var.region
           "awslogs-stream-prefix" = "log-router"
         }
@@ -168,7 +109,7 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/singsong-golang"
+          "awslogs-group"         = "/ecs/singsong-embedding"
           "awslogs-region"        = var.region
           "awslogs-stream-prefix" = "datadog-agent"
         }
@@ -184,21 +125,60 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
   ])
 }
 
-// ECS Service 생성
-resource "aws_ecs_service" "singsong_ecs_service" {
-  name                   = "singsong-ecs-goalng-service"
+// Application Load Balancer 생성 for Embedding Service
+resource "aws_lb" "singsong_embedding_alb" {
+  name               = "singsong-embedding-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.singsong_security_group.id]
+  subnets            = [aws_subnet.singsong_public_subnet1.id, aws_subnet.singsong_public_subnet2.id]
+}
+
+resource "aws_lb_target_group" "singsong_embedding_tg" {
+  name       = "singsong-embedding-tg"
+  port       = 50051
+  protocol   = "HTTP"
+  vpc_id     = aws_vpc.singsong_vpc.id
+  target_type = "ip"
+
+  health_check {
+    path                = "/health"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    matcher             = "200"
+  }
+
+  lifecycle {
+    prevent_destroy = true  # target group 삭제를 방지하여 오류를 피함
+  }
+}
+
+// ALB Listener 생성 for Embedding
+resource "aws_lb_listener" "singsong_embedding_listener" {
+  load_balancer_arn = aws_lb.singsong_embedding_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.singsong_embedding_tg.arn
+  }
+
+  lifecycle {
+    prevent_destroy = false  // Allow deletion of listener
+  }
+}
+
+// ECS Service 생성 for Embedding Service
+resource "aws_ecs_service" "singsong_embedding_service" {
+  name                   = "singsong-ecs-embedding-service"
   cluster                = aws_ecs_cluster.singsong_ecs_cluster.id
-  task_definition        = aws_ecs_task_definition.singsong_golang_ecs_task_definition.arn
-  desired_count          = 2
+  task_definition        = aws_ecs_task_definition.singsong_embedding_ecs_task_definition.arn
+  desired_count          = 1
   launch_type            = "FARGATE"
   scheduling_strategy    = "REPLICA"
-  health_check_grace_period_seconds = 120
-
-  load_balancer {
-    target_group_arn = aws_lb_target_group.singsong_target_group.arn
-    container_name = "singsong-golang-container"
-    container_port   = 8080
-  }
 
   network_configuration {
     subnets         = [aws_subnet.singsong_public_subnet1.id, aws_subnet.singsong_public_subnet2.id]
@@ -206,16 +186,18 @@ resource "aws_ecs_service" "singsong_ecs_service" {
     assign_public_ip = true
   }
 
-  lifecycle {
-    prevent_destroy = false
+  load_balancer {
+    target_group_arn = aws_lb_target_group.singsong_embedding_tg.arn
+    container_name   = "singsong-embedding-container"
+    container_port   = 50051
   }
 }
 
-// Route 53 CNAME 레코드 생성 for Golang 서비스
-resource "aws_route53_record" "singsong_golang_record" {
-  zone_id = aws_route53_zone.singsong_private_zone.zone_id  // 기존 Hosted Zone ID 사용
-  name    = "golang.${var.route53_zone_name}"
+// Route 53 CNAME 레코드 생성 for Embedding 서비스
+resource "aws_route53_record" "singsong_embedding_record" {
+  zone_id = aws_route53_zone.singsong_private_zone.zone_id
+  name    = "embedding.${var.route53_zone_name}"
   type    = "CNAME"
   ttl     = 300
-  records = [aws_lb.singsong_load_balancer.dns_name]  // Load Balancer의 DNS 이름을 사용
+  records = [aws_lb.singsong_embedding_alb.dns_name]  // ALB의 DNS 이름을 사용
 }
