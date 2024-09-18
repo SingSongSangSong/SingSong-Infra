@@ -1,6 +1,0 @@
-requests
-pymysql
-redis
-boto3
-pytz
-async_timeout

@@ -4,5 +4,6 @@ bash.sh
 terraform.tfvars
 .idea
 myvenv
-src/python/lib/python3.9/site-packages/*
+src/chart/python/lib/python3.9/site-packages/*
 final.zip
+*.tfvars
