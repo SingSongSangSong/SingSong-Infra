@@ -48,6 +48,32 @@ resource "aws_iam_role_policy" "ecs_task_execution_policy" {
           "s3:PutObject"
         ],
         Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "elasticfilesystem:DescribeFileSystems",
+          "elasticfilesystem:DescribeMountTargets",
+          "elasticfilesystem:DescribeMountTargetSecurityGroups",
+          "elasticfilesystem:CreateFileSystem",
+          "elasticfilesystem:DeleteFileSystem",
+          "elasticfilesystem:CreateMountTarget",
+          "elasticfilesystem:DeleteMountTarget",
+          "elasticfilesystem:CreateAccessPoint",
+          "elasticfilesystem:DeleteAccessPoint"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DescribeInstances",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeVpcs"
+        ],
+        Resource = "*"
       }
     ]
   })
@@ -194,6 +220,11 @@ resource "aws_ecs_service" "singsong_ecs_service" {
   scheduling_strategy    = "REPLICA"
   health_check_grace_period_seconds = 120
 
+  service_registries {
+    registry_arn = aws_service_discovery_service.singsong_ecs_service_golang_discovery.arn
+  }
+
+
   load_balancer {
     target_group_arn = aws_lb_target_group.singsong_target_group.arn
     container_name = "singsong-golang-container"
@@ -211,11 +242,11 @@ resource "aws_ecs_service" "singsong_ecs_service" {
   }
 }
 
-// Route 53 CNAME 레코드 생성 for Golang 서비스
-resource "aws_route53_record" "singsong_golang_record" {
-  zone_id = aws_route53_zone.singsong_private_zone.zone_id  // 기존 Hosted Zone ID 사용
-  name    = "golang.${var.route53_zone_name}"
-  type    = "CNAME"
-  ttl     = 300
-  records = [aws_lb.singsong_load_balancer.dns_name]  // Load Balancer의 DNS 이름을 사용
-}
+# // Route 53 CNAME 레코드 생성 for Golang 서비스
+# resource "aws_route53_record" "singsong_golang_record" {
+#   zone_id = aws_route53_zone.singsong_private_zone.zone_id  // 기존 Hosted Zone ID 사용
+#   name    = "golang.${var.route53_zone_name}"
+#   type    = "CNAME"
+#   ttl     = 300
+#   records = [aws_lb.singsong_load_balancer.dns_name]  // Load Balancer의 DNS 이름을 사용
+# }

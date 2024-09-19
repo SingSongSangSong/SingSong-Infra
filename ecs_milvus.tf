@@ -34,11 +34,50 @@ resource "aws_efs_file_system" "milvus_efs" {
   }
 }
 
+resource "aws_efs_mount_target" "etcd_efs_mount" {
+  file_system_id  = aws_efs_file_system.etcd_efs.id
+  subnet_id       = aws_subnet.singsong_public_subnet1.id
+  security_groups = [aws_security_group.singsong_milvus_security_group.id]
+}
+
+resource "aws_efs_mount_target" "minio_efs_mount" {
+  file_system_id  = aws_efs_file_system.minio_efs.id
+  subnet_id       = aws_subnet.singsong_public_subnet1.id
+  security_groups = [aws_security_group.singsong_milvus_security_group.id]
+}
+
+resource "aws_efs_mount_target" "milvus_efs_mount" {
+  file_system_id  = aws_efs_file_system.milvus_efs.id
+  subnet_id       = aws_subnet.singsong_public_subnet1.id
+  security_groups = [aws_security_group.singsong_milvus_security_group.id]
+}
+
 # Security Group for Milvus, MinIO, ETCD, and Attu services
 resource "aws_security_group" "singsong_milvus_security_group" {
   name        = "singsong-milvus-security-group"
   description = "Security group for ECS Fargate Milvus service"
   vpc_id      = aws_vpc.singsong_vpc.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 2049
+    to_port     = 2049
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   # Milvus Standalone (19530, 9091)
   ingress {
@@ -98,8 +137,8 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
   family                   = "milvus-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "1024"
-  memory                   = "4096"
+  cpu                      = "8192"
+  memory                   = "32768"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_execution_role.arn
 
@@ -109,10 +148,9 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
       image     = "quay.io/coreos/etcd:v3.5.5"
       essential = true
       command   = [
-        "etcd",
-        "-advertise-client-urls=http://127.0.0.1:2379",
-        "-listen-client-urls=http://0.0.0.0:2379",
-        "--data-dir=/etcd"
+        "/bin/sh",
+        "-c",
+        "etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls=http://0.0.0.0:2379 --data-dir=/etcd"
       ]
       environment = [
         {
@@ -130,21 +168,16 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
           containerPath = "/etcd"
         }
       ]
-      logConfiguration = {
-        logDriver = "awsfirelens"
-        options = {
-          Name           = "datadog"
-          dd_message_key = "log"
-          apikey         = var.datadog_api_key
-          dd_service     = "milvus-etcd"
-        }
-      }
     },
     {
       name      = "milvus-minio"
       image     = "minio/minio:RELEASE.2023-03-20T20-16-18Z"
       essential = true
-      command   = ["minio", "server", "/minio_data", "--console-address", ":9001"]
+      command   = [
+        "/bin/sh",
+        "-c",
+        "minio server /minio_data --console-address=:9001"
+      ]
       environment = [
         {
           name  = "MINIO_ACCESS_KEY"
@@ -171,21 +204,24 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
           containerPath = "/minio_data"
         }
       ]
-      logConfiguration = {
-        logDriver = "awsfirelens"
-        options = {
-          Name           = "datadog"
-          dd_message_key = "log"
-          apikey         = var.datadog_api_key
-          dd_service     = "milvus-minio"
-        }
-      }
     },
     {
       name      = "milvus-standalone"
       image     = "milvusdb/milvus:v2.4.10"
       essential = true
-      command   = ["milvus", "run", "standalone"]
+      command   = [
+        "/bin/sh",
+        "-c",
+        "milvus run standalone"
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.singsong_milvus_log_group.name
+          "awslogs-region"        = var.region
+          "awslogs-stream-prefix" = "milvus"
+        }
+      }
       environment = [
         {
           name  = "ETCD_ENDPOINTS"
@@ -212,15 +248,6 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
           containerPath = "/var/lib/milvus"
         }
       ]
-      logConfiguration = {
-        logDriver = "awsfirelens"
-        options = {
-          Name           = "datadog"
-          dd_message_key = "log"
-          apikey         = var.datadog_api_key
-          dd_service     = "milvus-standalone"
-        }
-      }
     }
   ])
 
@@ -255,10 +282,8 @@ resource "aws_ecs_service" "singsong_milvus_service" {
   launch_type            = "FARGATE"
   scheduling_strategy    = "REPLICA"
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.singsong_milvus_tg.arn
-    container_name   = "milvus-standalone"
-    container_port   = 19530
+  service_registries {
+    registry_arn = aws_service_discovery_service.singsong_ecs_service_milvus_discovery.arn
   }
 
   network_configuration {
@@ -266,52 +291,4 @@ resource "aws_ecs_service" "singsong_milvus_service" {
     security_groups = [aws_security_group.singsong_milvus_security_group.id]
     assign_public_ip = true
   }
-}
-
-# Application Load Balancer 생성
-resource "aws_lb" "milvus_load_balancer" {
-  name               = "milvus-lb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.singsong_milvus_security_group.id]
-  subnets            = [aws_subnet.singsong_public_subnet1.id, aws_subnet.singsong_public_subnet2.id]
-}
-
-# ALB Listener 설정
-resource "aws_lb_listener" "singsong_milvus_listener" {
-  load_balancer_arn = aws_lb.milvus_load_balancer.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.singsong_milvus_tg.arn
-  }
-}
-
-# ALB Target Group 생성 for Milvus
-resource "aws_lb_target_group" "singsong_milvus_tg" {
-  name       = "singsong-milvus-tg"
-  port       = 19530
-  protocol   = "HTTP"
-  vpc_id     = aws_vpc.singsong_vpc.id
-  target_type = "ip"
-
-  health_check {
-    path                = "/v1/health"  # 정확한 Milvus 헬스 체크 경로
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    matcher             = "200"
-  }
-}
-
-# Route 53 Record 생성
-resource "aws_route53_record" "singsong_milvus_record" {
-  zone_id = aws_route53_zone.singsong_private_zone.zone_id
-  name    = "milvus.${var.route53_zone_name}"
-  type    = "CNAME"
-  ttl     = 300
-  records = [aws_lb.milvus_load_balancer.dns_name]
 }

@@ -125,52 +125,6 @@ resource "aws_ecs_task_definition" "singsong_embedding_ecs_task_definition" {
   ])
 }
 
-// Application Load Balancer 생성 for Embedding Service
-resource "aws_lb" "singsong_embedding_alb" {
-  name               = "singsong-embedding-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.singsong_security_group.id]
-  subnets            = [aws_subnet.singsong_public_subnet1.id, aws_subnet.singsong_public_subnet2.id]
-}
-
-resource "aws_lb_target_group" "singsong_embedding_tg" {
-  name       = "singsong-embedding-tg"
-  port       = 50051
-  protocol   = "HTTP"
-  vpc_id     = aws_vpc.singsong_vpc.id
-  target_type = "ip"
-
-  health_check {
-    path                = "/health"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    matcher             = "200"
-  }
-
-  lifecycle {
-    prevent_destroy = true  # target group 삭제를 방지하여 오류를 피함
-  }
-}
-
-// ALB Listener 생성 for Embedding
-resource "aws_lb_listener" "singsong_embedding_listener" {
-  load_balancer_arn = aws_lb.singsong_embedding_alb.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.singsong_embedding_tg.arn
-  }
-
-  lifecycle {
-    prevent_destroy = false  // Allow deletion of listener
-  }
-}
-
 // ECS Service 생성 for Embedding Service
 resource "aws_ecs_service" "singsong_embedding_service" {
   name                   = "singsong-ecs-embedding-service"
@@ -186,18 +140,68 @@ resource "aws_ecs_service" "singsong_embedding_service" {
     assign_public_ip = true
   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.singsong_embedding_tg.arn
-    container_name   = "singsong-embedding-container"
-    container_port   = 50051
+  service_registries {
+    registry_arn = aws_service_discovery_service.singsong_ecs_service_embedding_discovery.arn
   }
+
+#   load_balancer {
+#     target_group_arn = aws_lb_target_group.singsong_embedding_tg.arn
+#     container_name   = "singsong-embedding-container"
+#     container_port   = 50051
+#   }
 }
 
-// Route 53 CNAME 레코드 생성 for Embedding 서비스
-resource "aws_route53_record" "singsong_embedding_record" {
-  zone_id = aws_route53_zone.singsong_private_zone.zone_id
-  name    = "embedding.${var.route53_zone_name}"
-  type    = "CNAME"
-  ttl     = 300
-  records = [aws_lb.singsong_embedding_alb.dns_name]  // ALB의 DNS 이름을 사용
-}
+// Application Load Balancer 생성 for Embedding Service
+# resource "aws_lb" "singsong_embedding_alb" {
+#   name               = "singsong-embedding-alb"
+#   internal           = false
+#   load_balancer_type = "application"
+#   security_groups    = [aws_security_group.singsong_security_group.id]
+#   subnets            = [aws_subnet.singsong_public_subnet1.id, aws_subnet.singsong_public_subnet2.id]
+# }
+#
+# resource "aws_lb_target_group" "singsong_embedding_tg" {
+#   name       = "singsong-embedding-tg"
+#   port       = 50051
+#   protocol   = "HTTP"
+#   vpc_id     = aws_vpc.singsong_vpc.id
+#   target_type = "ip"
+#
+#   health_check {
+#     path                = "/health"
+#     interval            = 30
+#     timeout             = 5
+#     healthy_threshold   = 2
+#     unhealthy_threshold = 2
+#     matcher             = "200"
+#   }
+#
+#   lifecycle {
+#     prevent_destroy = false
+#   }
+# }
+#
+# // ALB Listener 생성 for Embedding
+# resource "aws_lb_listener" "singsong_embedding_listener" {
+#   load_balancer_arn = aws_lb.singsong_embedding_alb.arn
+#   port              = 80
+#   protocol          = "HTTP"
+#
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.singsong_embedding_tg.arn
+#   }
+#
+#   lifecycle {
+#     prevent_destroy = false  // Allow deletion of listener
+#   }
+# }
+
+# // Route 53 CNAME 레코드 생성 for Embedding 서비스
+# resource "aws_route53_record" "singsong_embedding_record" {
+#   zone_id = aws_route53_zone.singsong_private_zone.zone_id
+#   name    = "embedding.${var.route53_zone_name}"
+#   type    = "CNAME"
+#   ttl     = 300
+#   records = [aws_lb.singsong_embedding_alb.dns_name]  // ALB의 DNS 이름을 사용
+# }
