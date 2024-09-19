@@ -82,3 +82,28 @@ variable "s3_bucket_name" {
     description = "S3 bucket name"
     type        = string
 }
+
+variable "openai_api_key" {
+    description = "OpenAI API key"
+    type        = string
+}
+
+variable "langchain_tracing_v2" {
+    description = "Langchain tracing v2"
+    type        = string
+}
+
+variable "langchain_endpoint" {
+    description = "Langchain endpoint"
+    type        = string
+}
+
+variable "langchain_api_key" {
+    description = "Langchain API key"
+    type        = string
+}
+
+variable "langchain_project" {
+    description = "Langchain project"
+    type        = string
+}

@@ -60,7 +60,10 @@ resource "aws_iam_role_policy" "ecs_task_execution_policy" {
           "elasticfilesystem:CreateMountTarget",
           "elasticfilesystem:DeleteMountTarget",
           "elasticfilesystem:CreateAccessPoint",
-          "elasticfilesystem:DeleteAccessPoint"
+          "elasticfilesystem:DeleteAccessPoint",
+          "elasticfilesystem:ClientMount",
+          "elasticfilesystem:ClientWrite",
+          "elasticfilesystem:ClientRootAccess",
         ],
         Resource = "*"
       },
@@ -92,6 +95,24 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
       name      = "singsong-golang-container"
       image     = "${aws_ecr_repository.singsong_golang_ecr_repository.repository_url}:latest"
       essential = true
+      environment = [
+        {
+          name  = "DB_HOST"
+          value = aws_db_instance.singsong_db.address
+        },
+        {
+          name  = "DB_USER"
+          value = var.db_username
+        },
+        {
+          name  = "DB_PASSWORD"
+          value = var.db_password
+        },
+        {
+          name  = "DB_DATABASE"
+          value = var.db_name
+        }
+      ],
       portMappings = [
         {
           containerPort = 8080

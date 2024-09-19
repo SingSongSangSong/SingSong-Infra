@@ -11,6 +11,44 @@ resource "aws_ecs_task_definition" "singsong_embedding_ecs_task_definition" {
       name      = "singsong-embedding-container"
       image     = "${aws_ecr_repository.singsong_embedding_ecr_repository.repository_url}:latest"
       essential = true
+      environment = [
+        {
+          name  = "DB_HOST"
+          value = aws_db_instance.singsong_db.address
+        },
+        {
+          name  = "DB_USER"
+          value = var.db_username
+        },
+        {
+          name  = "DB_PASSWORD"
+          value = var.db_password
+        },
+        {
+          name  = "DB_DATABASE"
+          value = var.db_name
+        },
+        {
+          name  = "OPENAI_API_KEY"
+          value = var.openai_api_key
+        },
+        {
+          name  = "LANGCHAIN_TRACING_V2"
+          value = var.langchain_tracing_v2
+        },
+        {
+          name  = "LANGCHAIN_ENDPOINT"
+          value = var.langchain_endpoint
+        },
+        {
+          name  = "LANGCHAIN_API_KEY"
+          value = var.langchain_api_key
+        },
+        {
+          name  = "LANGCHAINPROJECT"
+          value = var.langchain_project
+        }
+      ],
       portMappings = [
         {
           containerPort = 50051

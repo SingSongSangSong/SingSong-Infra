@@ -57,3 +57,4 @@ resource "aws_service_discovery_service" "singsong_ecs_service_milvus_discovery"
     failure_threshold = 1
   }
 }
+
