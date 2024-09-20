@@ -128,7 +128,7 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
     },
     {
       name      = "milvus-minio"
-      image     = "minio/minio:RELEASE.2023-03-20T20-16-18Z"
+      image     = "minio/minio:RELEASE.2024-09-13T20-26-02Z"
       essential = true
       command   = [
         "minio",  # "minio" 서버 명령어
@@ -139,11 +139,11 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
       environment = [
         {
           name  = "MINIO_ROOT_USER"
-          value = "minioadmin"
+          value = var.MINIO_ROOT_USER
         },
         {
           name  = "MINIO_ROOT_PASSWORD"
-          value = "minioadmin"
+          value = var.MINIO_ROOT_PASSWORD
         }
       ]
       logConfiguration = {

@@ -109,7 +109,7 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
           value = var.db_password
         },
         {
-          name  = "DB_DATABASE"
+          name  = "DB_NAME"
           value = var.db_name
         },
         {

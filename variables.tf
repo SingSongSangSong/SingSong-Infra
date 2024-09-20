@@ -183,3 +183,13 @@ variable "APPLE_CLIENT_ID"{
     type        = string
     description = "Apple client id"
 }
+
+variable "MINIO_ROOT_USER" {
+    type        = string
+    description = "Minio root user"
+}
+
+variable "MINIO_ROOT_PASSWORD" {
+    type        = string
+    description = "Minio root password"
+}
