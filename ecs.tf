@@ -98,7 +98,7 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
       environment = [
         {
           name  = "DB_HOST"
-          value = aws_db_instance.singsong_db.address
+          value = element(split(":", aws_db_instance.singsong_db.endpoint), 0)
         },
         {
           name  = "DB_USER"
@@ -111,6 +111,70 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
         {
           name  = "DB_DATABASE"
           value = var.db_name
+        },
+        {
+          name  = "DB_PORT"
+          value = tostring(var.DB_PORT)  # 숫자를 문자열로 변환
+        },
+        {
+          name = "REDIS_ADDR"
+          value = split(":", aws_elasticache_cluster.singsong_redis.cache_nodes.0.address)[0]
+        },
+        {
+          name = "REDIS_PORT"
+          value = tostring(var.REDIS_PORT)
+        },
+        {
+          name = "REDIS_PASSWORD"
+          value = var.REDIS_PASSWORD
+        },
+        {
+          name = "PINECONE_API_KEY"
+          value = var.PINECONE_API_KEY
+        },
+        {
+          name = "PINECONE_INDEX"
+          value = var.PINECONE_INDEX
+        },
+        {
+          name  = "SECRET_KEY"
+          value = var.SECRET_KEY
+        },
+        {
+          name = "KAKAO_REST_API_KEY"
+          value = var.KAKAO_REST_API_KEY
+        },
+        {
+          name = "KAKAO_ISSUER",
+          value = var.KAKAO_ISSUER
+        },
+        {
+          name = "JWT_ISSUER",
+          value = var.JWT_ISSUER
+        },
+        {
+          name = "JWT_ACCESS_VALIDITY_SECONDS"
+          value = var.JWT_ACCESS_VALIDITY_SECONDS
+        },
+        {
+        name = "JWT_REFRESH_VALIDITY_SECONDS"
+        value = var.JWT_REFRESH_VALIDITY_SECONDS
+        },
+        {
+          name = "GRPC_ADDR"
+          value = var.GRPC_ADDR
+        },
+        {
+          name = "SERVER_MODE"
+          value = "prod"
+        },
+        {
+          name = "APPLE_ISSUER"
+          value = var.APPLE_ISSUER
+        },
+        {
+          name = "APPLE_CLIENT_ID"
+          value = var.APPLE_CLIENT_ID
         }
       ],
       portMappings = [
@@ -262,12 +326,3 @@ resource "aws_ecs_service" "singsong_ecs_service" {
     prevent_destroy = false
   }
 }
-
-# // Route 53 CNAME 레코드 생성 for Golang 서비스
-# resource "aws_route53_record" "singsong_golang_record" {
-#   zone_id = aws_route53_zone.singsong_private_zone.zone_id  // 기존 Hosted Zone ID 사용
-#   name    = "golang.${var.route53_zone_name}"
-#   type    = "CNAME"
-#   ttl     = 300
-#   records = [aws_lb.singsong_load_balancer.dns_name]  // Load Balancer의 DNS 이름을 사용
-# }

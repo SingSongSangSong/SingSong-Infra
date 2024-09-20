@@ -107,3 +107,79 @@ variable "langchain_project" {
     description = "Langchain project"
     type        = string
 }
+
+variable "milvus_host" {
+    description = "Milvus host"
+    type        = string
+}
+
+variable "PINECONE_API_KEY" {
+  type        = string
+  description = "API key for Pinecone"
+}
+
+variable "PINECONE_INDEX" {
+  type        = string
+  description = "Index for Pinecone"
+}
+
+variable "DB_PORT" {
+  type        = number
+  description = "Database port"
+}
+
+variable "REDIS_PASSWORD" {
+    type        = string
+    description = "Redis password"
+}
+
+variable "SECRET_KEY" {
+  type        = string
+  description = "Secret key for application"
+  sensitive   = true
+}
+
+variable "KAKAO_REST_API_KEY" {
+  type        = string
+  description = "Kakao REST API key"
+}
+
+variable "KAKAO_ISSUER" {
+  type        = string
+  description = "Kakao issuer URL"
+}
+
+variable "JWT_ISSUER" {
+  type        = string
+  description = "JWT issuer"
+}
+
+variable "JWT_ACCESS_VALIDITY_SECONDS" {
+  type        = string
+  description = "JWT access token validity in seconds"
+}
+
+variable "JWT_REFRESH_VALIDITY_SECONDS" {
+  type        = string
+  description = "JWT refresh token validity in seconds"
+}
+
+variable "REDIS_PORT" {
+    type        = string
+    description = "Redis port"
+}
+
+variable "GRPC_ADDR" {
+    type        = string
+    description = "GRPC address"
+}
+
+variable "APPLE_ISSUER"{
+    type        = string
+    description = "Apple issuer"
+}
+
+variable "APPLE_CLIENT_ID"{
+    type        = string
+    description = "Apple client id"
+}

@@ -113,6 +113,12 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
           "awslogs-create-group"  = "true"
         }
       }
+      healthcheck = {
+        command : ["CMD", "etcdctl", "endpoint", "health"]
+        interval : 30
+        timeout : 20
+        retries : 3
+      }
       mountPoints = [
         {
           sourceVolume  = "milvus-etcd-storage"
@@ -148,6 +154,12 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
           "awslogs-stream-prefix" = "milvus"
           "awslogs-create-group"  = "true"
         }
+      },
+      healthcheck = {
+        command : ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+        interval : 30
+        timeout : 20
+        retries : 3
       }
       portMappings = [
         {
@@ -173,19 +185,17 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
       command = [
         "/bin/sh",
         "-c",
-        <<-EOF
-        apt-get update && apt-get install -y jq && \
-
-        # Print the list of running Docker containers and their metadata
-        curl -s http://169.254.170.2/v2/metadata | jq '.Containers[] | {Name, Networks}' && \
-
-        ETCD_IP=$(curl -s http://169.254.170.2/v2/metadata | jq -r '.Containers[] | select(.Name == "milvus-etcd").Networks[].IPv4Addresses[0]') && \
-        MINIO_IP=$(curl -s http://169.254.170.2/v2/metadata | jq -r '.Containers[] | select(.Name == "milvus-minio").Networks[].IPv4Addresses[0]') && \
-        echo "ETCD_IP=$ETCD_IP" && echo "MINIO_IP=$MINIO_IP" && \
-        export ETCD_ENDPOINTS=localhost:2379 && \
-        export MINIO_ADDRESS=localhost:9000 && \
-        milvus run standalone
-        EOF
+        "milvus run standalone"
+      ]
+      environment = [
+        {
+          name  = "ETCD_ENDPOINTS"
+          value = "localhost:2379"
+        },
+        {
+          name  = "MINIO_ADDRESS"
+          value = "localhost:9000"
+        }
       ]
       logConfiguration = {
         logDriver = "awslogs",
@@ -196,6 +206,13 @@ resource "aws_ecs_task_definition" "milvus_ecs_task_definition" {
           "awslogs-create-group"  = "true"
         }
       },
+      healthcheck = {
+        command : ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+        interval : 30
+        startPeriod : 90
+        timeout : 20
+        retries : 3
+      }
       portMappings = [
         {
           containerPort = 19530,
