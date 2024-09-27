@@ -175,6 +175,10 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
         {
           name = "APPLE_CLIENT_ID"
           value = var.APPLE_CLIENT_ID
+        },
+        {
+          name = "MILVUS_HOST"
+          value = aws_eip.bastion_eip.public_ip
         }
       ],
       portMappings = [

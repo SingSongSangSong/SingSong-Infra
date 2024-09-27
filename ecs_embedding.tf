@@ -54,7 +54,7 @@ resource "aws_ecs_task_definition" "singsong_embedding_ecs_task_definition" {
         },
         {
           name = "MILVUS_HOST"
-          value = var.milvus_host
+          value = aws_eip.bastion_eip.public_ip
         }
       ],
       portMappings = [

@@ -193,3 +193,18 @@ variable "MINIO_ROOT_PASSWORD" {
     type        = string
     description = "Minio root password"
 }
+
+variable "PRIVATE_KEY" {
+  type        = string
+  description = "Private"
+}
+
+variable "BASTION_ZONE_NAME" {
+    type        = string
+    description = "Bastion zone name"
+}
+
+variable "BASTION_CERTIFICATE_DOMAIN" {
+  type        = string
+  description = "Bastion certification domain name"
+}

@@ -8,6 +8,69 @@ resource "aws_security_group" "bastion_sg" {
     protocol  = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    from_port = 3000
+    to_port   = 3000
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 8080
+    to_port   = 8080
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 19530
+    to_port   = 19530
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 9091
+    to_port   = 9091
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 9001
+    to_port   = 9001
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 9000
+    to_port   = 9000
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 2379
+    to_port   = 2379
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 443
+    to_port   = 443
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 80
+    to_port   = 80
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port = 0
     to_port   = 0
@@ -32,14 +95,31 @@ data "aws_ami" "amzn-linux-2023-ami" {
     values = ["al2023-ami-2023.*-x86_64"]
   }
 }
+
+resource "aws_eip" "bastion_eip"{
+  instance = aws_instance.bastion_host.id
+}
+
 // bastion host instance
 resource "aws_instance" "bastion_host" {
   ami           = data.aws_ami.amzn-linux-2023-ami.id
-  instance_type = "t2.micro"
+  instance_type = "m4.xlarge"
   key_name      = aws_key_pair.bastion_key.key_name
   subnet_id     = aws_subnet.singsong_public_subnet1.id
   vpc_security_group_ids = [aws_security_group.bastion_sg.id]
   associate_public_ip_address = true
+
+  provisioner "file" {
+    source      = "./milvus-docker-compose.yml"  # 로컬 파일 경로
+    destination = "/home/ec2-user/milvus-docker-compose.yml"  # EC2 내부 경로
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file(var.PRIVATE_KEY)  # private key 파일 경로
+      host        = aws_instance.bastion_host.public_ip
+    }
+  }
+
   tags = {
     Name = "bastion-host"
   }
