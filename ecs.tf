@@ -179,6 +179,18 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
         {
           name = "MILVUS_HOST"
           value = aws_eip.bastion_eip.public_ip
+        },
+        {
+          name = "MILVUS_PORT"
+          value = var.MILVUS_PORT
+        },
+        {
+          name = "MILVUS_COLLECTION_NAME"
+            value = var.MILVUS_COLLECTION_NAME
+        },
+        {
+          name = "MILVUS_DIMENSION"
+          value = var.MILVUS_DIMENSION
         }
       ],
       portMappings = [

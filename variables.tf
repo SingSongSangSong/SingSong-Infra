@@ -208,3 +208,18 @@ variable "BASTION_CERTIFICATE_DOMAIN" {
   type        = string
   description = "Bastion certification domain name"
 }
+
+variable "MILVUS_PORT" {
+  type        = string
+  description = "Milvus port"
+}
+
+variable "MILVUS_COLLECTION_NAME" {
+  type        = string
+  description = "Milvus collection name"
+}
+
+variable "MILVUS_DIMENSION" {
+    type        = string
+    description = "Milvus dimension"
+}
