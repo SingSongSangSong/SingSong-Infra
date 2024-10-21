@@ -18,6 +18,27 @@ resource "aws_lb_target_group" "singsong_target_group" {
   }
 }
 
+# // Load Balancer Target Group 생성
+# resource "aws_lb_target_group" "singsong_embedding_target_group" {
+#   name     = "singsong_embedding_target_group"
+#   port     = 50051
+#   protocol = "HTTP"
+#   protocol_version = "GRPC"
+#   vpc_id   = aws_vpc.singsong_vpc.id
+#   target_type = "ip"
+#   deregistration_delay = "5"
+#
+#   health_check {
+#     path                = "/AWS.ALB/healthcheck"
+#     protocol            = "HTTP"
+#     matcher             = "12"
+#     interval            = 150
+#     timeout             = 120
+#     healthy_threshold   = 2
+#     unhealthy_threshold = 3
+#   }
+# }
+
 // Load Balancer 생성
 resource "aws_lb" "singsong_load_balancer" {
   name               = "singsong-load-balancer"

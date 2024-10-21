@@ -3,8 +3,8 @@ resource "aws_ecs_task_definition" "singsong_embedding_ecs_task_definition" {
   family                   = "singsong-embedding-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "1024"
-  memory                   = "2048"
+  cpu                      = "2048"
+  memory                   = "4096"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   container_definitions    = jsonencode([
     {

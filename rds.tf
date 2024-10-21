@@ -15,9 +15,32 @@ resource "aws_db_instance" "singsong_db" {
   username             = var.db_username
   password             = var.db_password
   db_subnet_group_name = aws_db_subnet_group.singsong_db_subnet_group.name
+  parameter_group_name = "singsong-db-parameter-group"
   vpc_security_group_ids = [aws_security_group.mysql_sg.id]
   skip_final_snapshot  = true
   final_snapshot_identifier = "singsong-db-final-snapshot"
+}
+
+// RDS Parameter Group
+resource "aws_db_parameter_group" "singsong_db_parameter_group" {
+  family      = "mysql8.0"
+  name        = "singsong-db-parameter-group"
+  description = "Custom parameter group for singsong RDS instance"
+
+  parameter {
+    name  = "character_set_server"
+    value = "utf8mb4"
+  }
+
+  parameter {
+    name  = "collation_server"
+    value = "utf8mb4_unicode_ci"
+  }
+
+  parameter {
+    name  = "time_zone"
+    value = "Asia/Seoul"
+  }
 }
 
 resource "aws_ssm_parameter" "db_password" {

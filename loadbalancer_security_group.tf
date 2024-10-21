@@ -3,6 +3,14 @@ resource "aws_security_group" "singsong_security_group" {
   vpc_id = aws_vpc.singsong_vpc.id
 
   ingress {
+    from_port   = 8126
+    to_port     = 8126
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
+  ingress {
     from_port   = 50051
     to_port     = 50051
     protocol    = "tcp"

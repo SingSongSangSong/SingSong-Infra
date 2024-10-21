@@ -120,6 +120,10 @@ resource "aws_instance" "bastion_host" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [ami]
+  }
+
   tags = {
     Name = "bastion-host"
   }
