@@ -92,7 +92,12 @@ data "aws_ami" "amzn-linux-2023-ami" {
 
   filter {
     name   = "name"
-    values = ["al2023-ami-2023.*-x86_64"]
+    values = ["al2023-ami-2023.*-arm64"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["arm64"]
   }
 }
 
@@ -103,7 +108,7 @@ resource "aws_eip" "bastion_eip"{
 // bastion host instance
 resource "aws_instance" "bastion_host" {
   ami           = data.aws_ami.amzn-linux-2023-ami.id
-  instance_type = "m4.xlarge"
+  instance_type = "c6g.xlarge"
   key_name      = aws_key_pair.bastion_key.key_name
   subnet_id     = aws_subnet.singsong_public_subnet1.id
   vpc_security_group_ids = [aws_security_group.bastion_sg.id]
