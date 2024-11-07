@@ -191,7 +191,24 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
         {
           name = "MILVUS_DIMENSION"
           value = var.MILVUS_DIMENSION
+        },
+        {
+          name      = "AWS_ACCESS_KEY_ID"
+          value = aws_iam_access_key.s3_user_access_key.id
+        },
+        {
+          name      = "AWS_SECRET_ACCESS_KEY"
+          value = aws_iam_access_key.s3_user_access_key.secret
+        },
+        {
+          name = "AWS_REGION"
+          value = var.region
+        },
+        {
+          name = "S3_BUCKET_NAME"
+          value = var.s3_bucket_name
         }
+
       ],
       portMappings = [
         {
