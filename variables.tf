@@ -223,3 +223,18 @@ variable "MILVUS_DIMENSION" {
     type        = string
     description = "Milvus dimension"
 }
+
+variable "GOOGLE_APPLICATION_CREDENTIALS_PATH" {
+    type        = string
+    description = "Google application credentials path for fcm"
+}
+
+variable "DEEP_LINK_BASE" {
+    type        = string
+    description = "Deep link base"
+}
+
+variable "SSM_PARAMETER_SERVICE_ACCOUNT" {
+  type = string
+  description = "Service account in parameter store"
+}

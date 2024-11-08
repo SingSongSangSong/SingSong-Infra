@@ -45,7 +45,11 @@ resource "aws_iam_role_policy" "ecs_task_execution_policy" {
           "ecr:BatchGetImage",
           "s3:GetObject",
           "s3:ListBucket",
-          "s3:PutObject"
+          "s3:PutObject",
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:DescribeParameters",
+          "kms:Decrypt"
         ],
         Resource = "*"
       },
@@ -207,8 +211,15 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
         {
           name = "S3_BUCKET_NAME"
           value = var.s3_bucket_name
+        },
+        {
+          name = "GOOGLE_APPLICATION_CREDENTIALS"
+          value = var.GOOGLE_APPLICATION_CREDENTIALS_PATH
+        },
+        {
+          name = "DEEP_LINK_BASE"
+          value = var.DEEP_LINK_BASE
         }
-
       ],
       portMappings = [
         {
@@ -234,6 +245,17 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
           TLS            = "on"
         }
       },
+      secrets = [
+        {
+          name      = "GOOGLE_APPLICATION_CREDENTIALS_CONTENT"
+          valueFrom = var.SSM_PARAMETER_SERVICE_ACCOUNT
+        }
+      ],
+      command = [
+        "/bin/sh",
+        "-c",
+        "echo \"$GOOGLE_APPLICATION_CREDENTIALS_CONTENT\" > \"$GOOGLE_APPLICATION_CREDENTIALS\" && go run main.go"
+      ],
     },
     {
       name      = "log-router"
