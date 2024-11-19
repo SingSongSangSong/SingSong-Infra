@@ -56,24 +56,6 @@ resource "aws_iam_role_policy" "ecs_task_execution_policy" {
       {
         Effect = "Allow",
         Action = [
-          "elasticfilesystem:DescribeFileSystems",
-          "elasticfilesystem:DescribeMountTargets",
-          "elasticfilesystem:DescribeMountTargetSecurityGroups",
-          "elasticfilesystem:CreateFileSystem",
-          "elasticfilesystem:DeleteFileSystem",
-          "elasticfilesystem:CreateMountTarget",
-          "elasticfilesystem:DeleteMountTarget",
-          "elasticfilesystem:CreateAccessPoint",
-          "elasticfilesystem:DeleteAccessPoint",
-          "elasticfilesystem:ClientMount",
-          "elasticfilesystem:ClientWrite",
-          "elasticfilesystem:ClientRootAccess",
-        ],
-        Resource = "*"
-      },
-      {
-        Effect = "Allow",
-        Action = [
           "ec2:DescribeNetworkInterfaces",
           "ec2:DescribeInstances",
           "ec2:DescribeSecurityGroups",

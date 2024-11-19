@@ -238,3 +238,8 @@ variable "SSM_PARAMETER_SERVICE_ACCOUNT" {
   type = string
   description = "Service account in parameter store"
 }
+
+variable "DB_IDENTIFIER" {
+  type = string
+  description = "DB identifier"
+}

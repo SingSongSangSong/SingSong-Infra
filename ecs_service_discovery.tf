@@ -1,8 +1,8 @@
 // Cloud Map 네임스페이스 생성 (기존 Hosted Zone 이름과 연동)
-resource "aws_service_discovery_private_dns_namespace" "singsong_ecs_service_discovery_namespace" {
-  name  = var.route53_zone_name  // 기존 Route 53 Hosted Zone 이름을 사용
-  vpc   = aws_vpc.singsong_vpc.id
-}
+# resource "aws_service_discovery_private_dns_namespace" "singsong_ecs_service_discovery_namespace" {
+#   name  = var.route53_zone_name  // 기존 Route 53 Hosted Zone 이름을 사용
+#   vpc   = module.vpc.vpc_id
+# }
 
 // SingSong-Golang 서비스 디스커버리
 resource "aws_service_discovery_service" "singsong_ecs_service_golang_discovery" {
