@@ -13,7 +13,7 @@ provider "aws" {
 }
 
 module "iam" {
-  source       = "../modules/iam"
+  source       = "modules/iam"
   role_name    = "ecsTaskExecutionRole"
   policy_document = {
     Version = "2012-10-17"
@@ -58,7 +58,7 @@ module "iam" {
 }
 
 module "ecs" {
-  source             = "../modules/ecs"
+  source             = "modules/ecs"
   ecs_cluster_name   = "singsong-cluster"
   execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
 
@@ -156,7 +156,7 @@ module "ecs" {
 
 
 module "vpc" {
-  source = "../modules/vpc"
+  source = "modules/vpc"
 
   vpc_cidr_block = var.vpc_cidr_block
   public_subnet_cidr_blocks = var.public_subnet_cidr_blocks
@@ -178,7 +178,7 @@ resource "aws_service_discovery_private_dns_namespace" "singsong_ecs_service_dis
 }
 
 module "ec2" {
-  source = "../modules/ec2"
+  source = "modules/ec2"
 
   vpc_id = module.vpc.vpc_id
   public_subnet1_id = module.vpc.public_subnet_ids[0]
@@ -191,7 +191,7 @@ module "ec2" {
 }
 
 module "ec2_sg" {
-  source = "../modules/security_group"
+  source = "modules/security_group"
 
   security_group_name = "bastion-sg"
   security_group_vpc_id              = module.vpc.vpc_id
@@ -249,7 +249,7 @@ module "ec2_sg" {
 }
 
 module "load_balancer" {
-  source = "../modules/alb"
+  source = "modules/alb"
 
   target_group_name      = "singsong-target-group"
   target_group_port      = 8080
@@ -266,7 +266,7 @@ module "load_balancer" {
 }
 
 module "rds" {
-  source = "../modules/rds"
+  source = "modules/rds"
 
   db_name                 = var.db_name
   db_username             = var.db_username
@@ -297,7 +297,7 @@ module "rds" {
 }
 
 module "redis" {
-  source = "../modules/elastiCache"
+  source = "modules/elastiCache"
 
   subnet_group_name       = "singsong-redis-subnet-group"
   subnet_ids              = module.vpc.private_subnet_ids
