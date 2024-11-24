@@ -57,6 +57,12 @@ module "iam" {
   }
 }
 
+module "ecr" {
+  source = "./modules/ecr"
+
+  ECR_REPOSITORY_NAME = var.ECR_REPOSITORIES
+}
+
 module "ecs" {
   source             = "./modules/ecs"
   ecs_cluster_name   = "singsong-cluster"
@@ -69,7 +75,7 @@ module "ecs" {
       memory                        = "2048"
       container_definitions_template = "singsong_golang_task.yml"
       container_variables = {
-        ecr_repository_url = aws_ecr_repository.singsong_golang_ecr_repository.repository_url
+        ecr_repository_url = module.ecr.ECR_REPOSITORY_URL[var.ECR_REPOSITORIES[0]]
         db_host            = element(split(":", module.rds.db_instance_endpoint), 0) # RDS 호스트
         db_username        = var.db_username # DB 사용자 이름
         db_password        = var.db_password # DB 비밀번호
@@ -110,7 +116,7 @@ module "ecs" {
       memory                        = "4096"
       container_definitions_template = "singsong_embedding_task.yml"
       container_variables = {
-        ecr_repository_url = aws_ecr_repository.singsong_embedding_ecr_repository.repository_url
+        ecr_repository_url = module.ecr.ECR_REPOSITORY_URL[var.ECR_REPOSITORIES[1]]
         db_host            = element(split(":", module.rds.db_instance_endpoint), 0)
         db_username        = var.db_username
         db_password        = var.db_password
