@@ -296,7 +296,7 @@ module "rds" {
 }
 
 module "redis" {
-  source = "./modules/elastiCache"
+  source = "modules/elasticache"
 
   subnet_group_name       = "singsong-redis-subnet-group"
   subnet_ids              = module.vpc.private_subnet_ids
