@@ -13,7 +13,7 @@
     - name: DB_PORT
       value: "${db_port}"
     - name: REDIS_ADDR
-      value: "${redis_addr}"
+      value: "${redis_host}"
     - name: REDIS_PORT
       value: "${redis_port}"
     - name: REDIS_PASSWORD
@@ -50,10 +50,6 @@
       value: "${milvus_collection_name}"
     - name: MILVUS_DIMENSION
       value: "${milvus_dimension}"
-    - name: AWS_ACCESS_KEY_ID
-      value: "${aws_access_key_id}"
-    - name: AWS_SECRET_ACCESS_KEY
-      value: "${aws_secret_access_key}"
     - name: AWS_REGION
       value: "${aws_region}"
     - name: S3_BUCKET_NAME
@@ -81,7 +77,7 @@
       TLS: "on"
   secrets:
     - name: "GOOGLE_APPLICATION_CREDENTIALS_CONTENT"
-      valueFrom: "${google_application_credentials_content}"
+      valueFrom: "${ssm_parameter_service_account}"
   command:
     - "/bin/sh"
     - "-c"
@@ -114,7 +110,7 @@
     - name: DD_API_KEY
       value: "${datadog_api_key}"
     - name: DD_SITE
-      value: "${datadog_site}"
+      value: "${datadog_url}"
     - name: ECS_FARGATE
       value: "true"
     - name: DD_RUNTIME_SECURITY_CONFIG_ENABLED

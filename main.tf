@@ -57,42 +57,6 @@ module "iam" {
   }
 }
 
-// SingSong-Golang 서비스 디스커버리
-resource "aws_service_discovery_service" "singsong_ecs_service_golang_discovery" {
-  name  = "golang"
-
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.singsong_ecs_service_discovery_namespace.id  # Cloud Map 네임스페이스 ID 사용
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
-    routing_policy = "MULTIVALUE"
-  }
-
-  health_check_custom_config {
-    failure_threshold = 1
-  }
-}
-
-// SingSong-Embedding 서비스 디스커버리
-resource "aws_service_discovery_service" "singsong_ecs_service_embedding_discovery" {
-  name  = "embedding"
-
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.singsong_ecs_service_discovery_namespace.id  # Cloud Map 네임스페이스 ID 사용
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
-    routing_policy = "MULTIVALUE"
-  }
-
-  health_check_custom_config {
-    failure_threshold = 1
-  }
-}
-
 module "ecs" {
   source             = "./modules/ecs"
   ecs_cluster_name   = "singsong-cluster"
@@ -103,7 +67,7 @@ module "ecs" {
       family                        = "singsong-golang-task"
       cpu                           = "1024"
       memory                        = "2048"
-      container_definitions_template = "golang_task.yml.tpl"
+      container_definitions_template = "singsong_golang_task.yml"
       container_variables = {
         ecr_repository_url = aws_ecr_repository.singsong_golang_ecr_repository.repository_url
         db_host            = element(split(":", module.rds.db_instance_endpoint), 0) # RDS 호스트
@@ -144,7 +108,7 @@ module "ecs" {
       family                        = "singsong-embedding-task"
       cpu                           = "2048"
       memory                        = "4096"
-      container_definitions_template = "embedding_task.yml.tpl"
+      container_definitions_template = "singsong_embedding_task.yml"
       container_variables = {
         ecr_repository_url = aws_ecr_repository.singsong_embedding_ecr_repository.repository_url
         db_host            = element(split(":", module.rds.db_instance_endpoint), 0)
@@ -174,7 +138,7 @@ module "ecs" {
       target_group_arn       = module.load_balancer.target_group_arn
       container_name         = "singsong-golang-container"
       container_port         = 8080
-      subnet_ids             = [module.vpc.public_subnet_ids]
+      subnet_ids             = module.vpc.public_subnet_ids
       security_group_ids     = [module.ec2_sg.security_group_id]
     },
     embedding_service = {
@@ -184,12 +148,11 @@ module "ecs" {
       service_discovery_arn  = aws_service_discovery_service.singsong_ecs_service_embedding_discovery.arn
       container_name         = "singsong-embedding-container"
       container_port         = 50051
-      subnet_ids             = [module.vpc.public_subnet_ids]
+      subnet_ids             = module.vpc.public_subnet_ids
       security_group_ids     = [module.ec2_sg.security_group_id]
     }
   }
 }
-
 
 module "vpc" {
   source = "./modules/vpc"
@@ -207,12 +170,6 @@ module "vpc" {
   private_route_table_name = "singsong-private-route-table"
 }
 
-// Cloud Map 네임스페이스 생성 (기존 Hosted Zone 이름과 연동)
-resource "aws_service_discovery_private_dns_namespace" "singsong_ecs_service_discovery_namespace" {
-  name  = var.route53_zone_name  // 기존 Route 53 Hosted Zone 이름을 사용
-  vpc   = module.vpc.vpc_id
-}
-
 module "ec2" {
   source = "./modules/ec2"
 
@@ -222,7 +179,7 @@ module "ec2" {
   ec2_public_key = var.public_key
   ec2_private_key = var.PRIVATE_KEY
   instance_type = "c6g.xlarge"
-  allowed_cidr_blocks = var.vpc_cidr_block
+  allowed_cidr_blocks = [var.vpc_cidr_block]
   bastion_host_name = "bastion-host"
 }
 
@@ -309,8 +266,8 @@ module "rds" {
   db_password             = var.db_password
   db_identifier           = var.DB_IDENTIFIER
   vpc_id                  = module.vpc.vpc_id
-  subnet_ids              = module.vpc.private_subnet_ids[0]
-  allowed_cidr_blocks     = var.vpc_cidr_block
+  subnet_ids              = module.vpc.private_subnet_ids
+  allowed_cidr_blocks     = [var.vpc_cidr_block]
   db_parameter_group_name = "singsong-db-parameter-group"
   db_parameter_family     = "mysql8.0"
   parameters = [
@@ -338,7 +295,7 @@ module "redis" {
   subnet_group_name       = "singsong-redis-subnet-group"
   subnet_ids              = module.vpc.private_subnet_ids
   vpc_id                  = module.vpc.vpc_id
-  ingress_cidr_blocks     = var.vpc_cidr_block
+  ingress_cidr_blocks     = [var.vpc_cidr_block]
   cluster_id              = "singsong-redis"
   node_type               = "cache.t3.micro"
   num_cache_nodes         = 1
@@ -346,4 +303,55 @@ module "redis" {
   final_snapshot_identifier = "singsong-redis-final-snapshot"
   log_group_name          = aws_cloudwatch_log_group.singsong_log_group.name
   ssm_parameter_name      = "/singsong/ElastiCacheEndpoint"
+}
+
+// Route 53 CNAME 레코드 생성
+resource "aws_route53_record" "singsong_cname_record" {
+  zone_id = data.aws_route53_zone.singsong_dns.zone_id
+  name    = var.certificate_domain
+  type    = "CNAME"
+  ttl     = 300
+  records = [module.load_balancer.load_balancer_dns_name]
+}
+
+// Cloud Map 네임스페이스 생성 (기존 Hosted Zone 이름과 연동)
+resource "aws_service_discovery_private_dns_namespace" "singsong_ecs_service_discovery_namespace" {
+  name  = var.route53_zone_name  // 기존 Route 53 Hosted Zone 이름을 사용
+  vpc   = module.vpc.vpc_id
+}
+
+// SingSong-Golang 서비스 디스커버리
+resource "aws_service_discovery_service" "singsong_ecs_service_golang_discovery" {
+  name  = "golang"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.singsong_ecs_service_discovery_namespace.id  # Cloud Map 네임스페이스 ID 사용
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+    routing_policy = "MULTIVALUE"
+  }
+
+  health_check_custom_config {
+    failure_threshold = 1
+  }
+}
+
+// SingSong-Embedding 서비스 디스커버리
+resource "aws_service_discovery_service" "singsong_ecs_service_embedding_discovery" {
+  name  = "embedding"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.singsong_ecs_service_discovery_namespace.id  # Cloud Map 네임스페이스 ID 사용
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+    routing_policy = "MULTIVALUE"
+  }
+
+  health_check_custom_config {
+    failure_threshold = 1
+  }
 }
