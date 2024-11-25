@@ -84,7 +84,7 @@ resource "aws_lb_listener_rule" "milvus_db_monitoring_rule" {
 
   condition {
     path_pattern {
-      values = ["/milvus/*"]
+      values = ["/milvus/*", "/milvus"]
     }
   }
 
