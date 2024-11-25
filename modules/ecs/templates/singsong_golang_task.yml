@@ -1,0 +1,143 @@
+- name: singsong-golang-container
+  image: "${ecr_repository_url}:latest"
+  essential: true
+  environment:
+    - name: DB_HOST
+      value: "${db_host}"
+    - name: DB_USER
+      value: "${db_username}"
+    - name: DB_PASSWORD
+      value: "${db_password}"
+    - name: DB_NAME
+      value: "${db_name}"
+    - name: DB_PORT
+      value: "${db_port}"
+    - name: REDIS_ADDR
+      value: "${redis_host}"
+    - name: REDIS_PORT
+      value: "${redis_port}"
+    - name: REDIS_PASSWORD
+      value: "${redis_password}"
+    - name: PINECONE_API_KEY
+      value: "${pinecone_api_key}"
+    - name: PINECONE_INDEX
+      value: "${pinecone_index}"
+    - name: SECRET_KEY
+      value: "${secret_key}"
+    - name: KAKAO_REST_API_KEY
+      value: "${kakao_rest_api_key}"
+    - name: KAKAO_ISSUER
+      value: "${kakao_issuer}"
+    - name: JWT_ISSUER
+      value: "${jwt_issuer}"
+    - name: JWT_ACCESS_VALIDITY_SECONDS
+      value: "${jwt_access_validity_seconds}"
+    - name: JWT_REFRESH_VALIDITY_SECONDS
+      value: "${jwt_refresh_validity_seconds}"
+    - name: GRPC_ADDR
+      value: "${grpc_addr}"
+    - name: SERVER_MODE
+      value: "prod"
+    - name: APPLE_ISSUER
+      value: "${apple_issuer}"
+    - name: APPLE_CLIENT_ID
+      value: "${apple_client_id}"
+    - name: MILVUS_HOST
+      value: "${milvus_host}"
+    - name: MILVUS_PORT
+      value: "${milvus_port}"
+    - name: MILVUS_COLLECTION_NAME
+      value: "${milvus_collection_name}"
+    - name: MILVUS_DIMENSION
+      value: "${milvus_dimension}"
+    - name: AWS_REGION
+      value: "${aws_region}"
+    - name: S3_BUCKET_NAME
+      value: "${s3_bucket_name}"
+    - name: GOOGLE_APPLICATION_CREDENTIALS
+      value: "${google_application_credentials}"
+    - name: DEEP_LINK_BASE
+      value: "${deep_link_base}"
+  portMappings:
+    - containerPort: 8080
+      hostPort: 8080
+    - containerPort: 80
+      hostPort: 80
+  logConfiguration:
+    logDriver: "awsfirelens"
+    options:
+      Name: "datadog"
+      dd_message_key: "log"
+      apikey: "${datadog_api_key}"
+      dd_service: "singsong-golang"
+      dd_source: "httpd"
+      dd_tags: "env:prod"
+      provider: "ecs"
+      Host: "http-intake.logs.us5.datadoghq.com"
+      TLS: "on"
+  secrets:
+    - name: "GOOGLE_APPLICATION_CREDENTIALS_CONTENT"
+      valueFrom: "${ssm_parameter_service_account}"
+  command:
+    - "/bin/sh"
+    - "-c"
+    - "echo \"$GOOGLE_APPLICATION_CREDENTIALS_CONTENT\" > \"$GOOGLE_APPLICATION_CREDENTIALS\" && go run main.go"
+
+- name: log-router
+  image: "amazon/aws-for-fluent-bit:stable"
+  essential: true
+  firelensConfiguration:
+    type: "fluentbit"
+    options:
+      enable-ecs-log-metadata: "true"
+      config-file-type: "file"
+      config-file-value: "/fluent-bit/configs/parse-json.conf"
+  logConfiguration:
+    logDriver: "awslogs"
+    options:
+      awslogs-group: "/ecs/singsong-golang"
+      awslogs-region: "${aws_region}"
+      awslogs-stream-prefix: "log-router"
+
+- name: datadog-agent
+  image: "public.ecr.aws/datadog/agent:latest"
+  portMappings:
+    - hostPort: 8126
+      containerPort: 8126
+      protocol: "tcp"
+  essential: true
+  environment:
+    - name: DD_API_KEY
+      value: "${datadog_api_key}"
+    - name: DD_SITE
+      value: "${datadog_url}"
+    - name: ECS_FARGATE
+      value: "true"
+    - name: DD_RUNTIME_SECURITY_CONFIG_ENABLED
+      value: "true"
+    - name: DD_RUNTIME_SECURITY_CONFIG_EBPFLESS_ENABLED
+      value: "true"
+    - name: DD_APM_ENABLED
+      value: "true"
+    - name: DD_APM_NON_LOCAL_TRAFFIC
+      value: "true"
+    - name: DD_ECS_LOG_ENABLED
+      value: "true"
+    - name: DD_LOGS_ENABLED
+      value: "true"
+    - name: DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL
+      value: "true"
+  logConfiguration:
+    logDriver: "awslogs"
+    options:
+      awslogs-group: "/ecs/singsong-golang"
+      awslogs-region: "${aws_region}"
+      awslogs-stream-prefix: "datadog-agent"
+  healthCheck:
+    command:
+      - "CMD-SHELL"
+      - "/probe.sh"
+    interval: 30
+    timeout: 5
+    retries: 2
+    startPeriod: 60

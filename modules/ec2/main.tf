@@ -1,7 +1,7 @@
 // security group for bastion host
 resource "aws_security_group" "bastion_sg" {
   name   = "bastion-sg"
-  vpc_id = aws_vpc.singsong_vpc.id
+  vpc_id = var.vpc_id
   ingress {
     from_port = 22
     to_port   = 22
@@ -81,8 +81,8 @@ resource "aws_security_group" "bastion_sg" {
 
 // key pair for bastion host
 resource "aws_key_pair" "bastion_key" {
-  key_name   = var.key_name
-  public_key = var.public_key
+  key_name   = var.ec2_key_name
+  public_key = var.ec2_public_key
 }
 
 
@@ -102,15 +102,15 @@ data "aws_ami" "amzn-linux-2023-ami" {
 }
 
 resource "aws_eip" "bastion_eip"{
-  instance = aws_instance.bastion_host.id
+  instance = aws_instance.this.id
 }
 
 // bastion host instance
-resource "aws_instance" "bastion_host" {
+resource "aws_instance" "this" {
   ami           = data.aws_ami.amzn-linux-2023-ami.id
   instance_type = "c6g.xlarge"
   key_name      = aws_key_pair.bastion_key.key_name
-  subnet_id     = aws_subnet.singsong_public_subnet1.id
+  subnet_id     = var.public_subnet1_id
   vpc_security_group_ids = [aws_security_group.bastion_sg.id]
   associate_public_ip_address = true
 
@@ -120,8 +120,8 @@ resource "aws_instance" "bastion_host" {
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = file(var.PRIVATE_KEY)  # private key 파일 경로
-      host        = aws_instance.bastion_host.public_ip
+      private_key = file(var.ec2_private_key)  # private key 파일 경로
+      host        = aws_instance.this.public_ip
     }
   }
 

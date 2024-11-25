@@ -9,14 +9,14 @@ data "aws_acm_certificate" "singsong_cert" {
   most_recent = true
 }
 
-// Route 53 CNAME 레코드 생성
-resource "aws_route53_record" "singsong_cname_record" {
-  zone_id = data.aws_route53_zone.singsong_dns.zone_id
-  name    = var.certificate_domain
-  type    = "CNAME"
-  ttl     = 300
-  records = [aws_lb.singsong_load_balancer.dns_name]
-}
+# // Route 53 CNAME 레코드 생성
+# resource "aws_route53_record" "singsong_cname_record" {
+#   zone_id = data.aws_route53_zone.singsong_dns.zone_id
+#   name    = var.certificate_domain
+#   type    = "CNAME"
+#   ttl     = 300
+#   records = [aws_lb.singsong_load_balancer.dns_name]
+# }
 
 # data "aws_route53_zone" "singsong_bastion_dns" {
 #   name = var.BASTION_ZONE_NAME

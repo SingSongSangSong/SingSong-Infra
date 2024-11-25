@@ -243,3 +243,13 @@ variable "SENTRY_DSN" {
   type = string
   description = "Sentry DSN"
 }
+
+variable "DB_IDENTIFIER" {
+  type = string
+  description = "DB identifier"
+}
+
+variable "ECR_REPOSITORIES" {
+    type = list(string)
+    description = "ECR repositories"
+}
