@@ -219,6 +219,10 @@ resource "aws_ecs_task_definition" "singsong_golang_ecs_task_definition" {
         {
           name = "DEEP_LINK_BASE"
           value = var.DEEP_LINK_BASE
+        },
+        {
+            name = "SENTRY_DSN"
+            value = var.SENTRY_DSN
         }
       ],
       portMappings = [
