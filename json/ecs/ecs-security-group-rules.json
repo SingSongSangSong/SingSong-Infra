@@ -1,0 +1,17 @@
+{
+  "alb_ingress_80": {
+    "type": "ingress",
+    "from_port": 80,
+    "to_port": 80,
+    "protocol": "tcp",
+    "description": "Service port",
+    "source_security_group_id": "<SOURCE_SECURITY_GROUP_ID>"
+  },
+  "egress_all": {
+    "type": "egress",
+    "from_port": 0,
+    "to_port": 0,
+    "protocol": "-1",
+    "cidr_blocks": ["0.0.0.0/0"]
+  }
+}

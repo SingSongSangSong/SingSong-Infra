@@ -1,0 +1,17 @@
+{
+  "ex-ecs": {
+    "name_prefix": "ecs",
+    "protocol": "HTTP",
+    "port": 80,
+    "target_type": "ip",
+    "health_check": {
+      "enabled": true,
+      "interval": 30,
+      "path": "/",
+      "timeout": 5,
+      "healthy_threshold": 3,
+      "unhealthy_threshold": 3
+    },
+    "create_attachment": false
+  }
+}

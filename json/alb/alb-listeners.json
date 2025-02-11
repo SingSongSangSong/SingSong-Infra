@@ -1,0 +1,19 @@
+{
+  "ex-http-https-redirect": {
+    "port": 80,
+    "protocol": "HTTP",
+    "redirect": {
+      "port": "443",
+      "protocol": "HTTPS",
+      "status_code": "HTTP_301"
+    }
+  },
+  "ex-https": {
+    "port": 443,
+    "protocol": "HTTPS",
+    "certificate_arn": "<CERTIFICATE_ARN>",
+    "forward": {
+      "target_group_key": "ex-ecs"
+    }
+  }
+}
