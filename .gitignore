@@ -1,9 +1,7 @@
-bash.sh
 .terraform
-.terraform.lock.hcl
-terraform.tfvars
-.idea
-myvenv
-src/chart/python/lib/python3.9/site-packages/*
-final.zip
+.terraform/*
+**/.terraform/*
+*.tfstate
 *.tfvars
+**/.terraform.lock.hcl
+**/.terraform
