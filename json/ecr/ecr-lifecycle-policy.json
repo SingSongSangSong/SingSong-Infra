@@ -1,0 +1,17 @@
+{
+  "rules": [
+    {
+      "rulePriority": 1,
+      "description": "Keep last 30 images with v* or latest",
+      "selection": {
+        "tagStatus": "tagged",
+        "tagPrefixList": ["v", "latest"],
+        "countType": "imageCountMoreThan",
+        "countNumber": 30
+      },
+      "action": {
+        "type": "expire"
+      }
+    }
+  ]
+}
